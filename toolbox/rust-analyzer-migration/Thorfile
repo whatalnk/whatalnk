@@ -1,0 +1,92 @@
+require "thor"
+require "toml-rb"
+
+CARGO_CONFIG_FILE = "Cargo.toml"
+
+module App 
+    def self.save_toml(conf, filename, dryrun)
+        if dryrun then 
+            puts "File to save: #{File.absolute_path(filename)}"
+            puts(TomlRB.dump(conf))
+        else
+            File.open(filename, 'w') do |f|
+                f.puts(TomlRB.dump(conf))
+                puts "Saved: #{File.absolute_path(filename)}"
+            end
+        end
+
+    end
+
+    class Ws < Thor
+        namespace :ws
+        desc "add PACKAGEs", "Add PACKAGE(s) to workspace"
+        option :packages, :type => :array
+        method_option :dryrun, :desc => "print new Cargo.toml without saving"
+        def add(*packages)
+            dryrun = options[:dryrun]
+            conf = TomlRB.load_file(CARGO_CONFIG_FILE)
+            workspace = conf.fetch("workspace")
+            members = workspace.fetch("members")
+            packages.each do |pkg|
+                if members.include?(pkg) then 
+                    puts "package #{pkg} is already added, skip."
+                else
+                    puts "add #{pkg}"
+                    members << pkg 
+                end
+            end
+            members.sort!
+            workspace.store("members", members)
+            conf.store("workspace", workspace)
+            App::save_toml(conf, CARGO_CONFIG_FILE, dryrun)
+        end
+
+        desc "remove PACKAGEs", "Remove PACKAGE(s) from workspace"
+        option :packages, :type => :array
+        method_option :dryrun, :desc => "print new Cargo.toml without saving"
+        def remove(*packages)
+            dryrun = options[:dryrun]
+            conf = TomlRB.load_file(CARGO_CONFIG_FILE)
+            workspace = conf.fetch("workspace")
+            members = workspace.fetch("members")
+            packages.each do |pkg|
+                if members.include?(pkg) then 
+                    puts "remove #{pkg}"
+                    members.delete(pkg) 
+                else
+                    puts "package #{pkg} is not in workspace, skip."
+                end
+            end
+            workspace.store("members", members)
+            conf.store("workspace", workspace)
+            App::save_toml(conf, CARGO_CONFIG_FILE, dryrun)
+        end
+
+        desc "init", "Initialize workspace with Cargo.toml"
+        method_option :dryrun, :desc => "print new Cargo.toml without saving"
+        def init
+            dryrun = options[:dryrun]
+            conf = {
+                "workspace" => {
+                    "members" => []
+                }
+            }
+            App::save_toml(conf, CARGO_CONFIG_FILE, dryrun)
+        end
+    end
+
+    class Pj < Thor 
+        namespace :pj
+        desc "rename PACKAGE NEW_NAME", "Rename package name of PACKAGE to NEW_NAME"
+        method_option :dryrun, :desc => "print new Cargo.toml without saving"
+        def rename(package, new_name) 
+            dryrun = options[:dryrun]
+            cargo_config_path = File.join(package, CARGO_CONFIG_FILE)
+            conf = TomlRB.load_file(cargo_config_path)
+            old_name = conf.dig("package", "name")
+            conf["package"]["name"] = new_name
+            puts "rename: #{old_name} -> #{new_name}"
+            App::save_toml(conf, cargo_config_path, dryrun)
+        end
+    end
+end
