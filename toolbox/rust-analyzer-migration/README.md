@@ -19,6 +19,11 @@ fd --max-depth 1 --type d -E target -X thor ws:add {/}
 fd --max-depth 1 --type d -E target -x sd -p -s hello {/} {}/Cargo.toml
 ```
 
+chek
+```
+cargo check --quiet --workspace --all-targets
+```
+
 misc
 * src directory moved in recent version of rust; and rust-analyzer cannot find src directory in 1.42.0 
 * https://zenn.dev/yajamon/articles/be689814d242f8
