@@ -1,5 +1,11 @@
 import time
 from multiprocessing import Pool
+import multiprocessing
+import logging
+
+
+logger = multiprocessing.log_to_stderr()
+logger.setLevel(logging.DEBUG)
 
 
 def f(i):
@@ -12,4 +18,5 @@ if __name__ == '__main__':
             f,
             [(i,) for i in range(10)]
         )
-        # time.sleep(1)  # add this line to terminate Pool
+        logger.debug("sleep\n")
+        # time.sleep(10)  # add this line to terminate Pool
